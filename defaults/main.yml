@@ -1,0 +1,4 @@
+awx_version: 0.23.0
+awx_port: 31852
+awx_redis_version: bullseye
+awx_ee: quay.io/ansible/awx-ee:latest

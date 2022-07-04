@@ -1,0 +1,46 @@
+- name: Ensure python3 k8s client is available
+  become: True
+  ansible.builtin.apt:
+    state: present
+    update_cache: yes
+    cache_valid_time: 1800
+    name:
+      - python3-kubernetes
+
+- name: Create configuration dir
+  delegate_to: localhost
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - "k8s/{{ ansible_fqdn }}"
+    - "k8s/{{ ansible_fqdn }}/awx-operator"
+    - "k8s/{{ ansible_fqdn }}/awx"
+
+- name: Template kustomize config for operator
+  delegate_to: localhost
+  ansible.builtin.template:
+    src: kustomization.yaml.j2
+    dest: "k8s/{{ ansible_fqdn }}/awx-operator/kustomization.yaml"
+
+- name: Generate manifest for operator
+  set_fact:
+    awx_manifest: "{{ lookup('kubernetes.core.kustomize', dir='k8s/' + ansible_fqdn + '/awx-operator') }}"
+
+- name: Apply operator
+  become: True
+  kubernetes.core.k8s:
+    definition: "{{ awx_manifest }}"
+    kubeconfig: /etc/rancher/k3s/k3s.yaml
+
+- name: Template manifest for AWX
+  delegate_to: localhost
+  ansible.builtin.template:
+    src: awx.yaml.j2
+    dest: "k8s/{{ ansible_fqdn }}/awx/manifest.yaml"
+
+- name: Apply AWX
+  become: True
+  kubernetes.core.k8s:
+    definition: "{{ lookup('file', 'k8s/' + ansible_fqdn + '/awx/manifest.yaml') }}"
+    kubeconfig: /etc/rancher/k3s/k3s.yaml

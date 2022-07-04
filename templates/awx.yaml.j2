@@ -1,0 +1,15 @@
+apiVersion: awx.ansible.com/v1beta1
+kind: AWX
+metadata:
+  name: awx
+  namespace: awx
+spec:
+  ingress_type: none
+  postgres_storage_class: local-path
+  projects_persistence: true
+  projects_storage_class: local-path
+  projects_storage_access_mode: ReadWriteOnce
+  redis_image_version: {{ awx_redis_version }}
+  control_plane_ee_image: {{ awx_ee }}
+  service_type: LoadBalancer
+  loadbalancer_port: {{ awx_port }}
