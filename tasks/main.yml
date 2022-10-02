@@ -44,3 +44,20 @@
   kubernetes.core.k8s:
     definition: "{{ lookup('file', 'k8s/' + ansible_fqdn + '/awx/manifest.yaml') }}"
     kubeconfig: /etc/rancher/k3s/k3s.yaml
+
+# The k8s lookup plugin would unfortunately run on the controller node -.-
+- name: Read out service port
+  become: True
+  command: k3s kubectl -nawx get svc awx-service -o jsonpath='{.spec.ports[0].port}'
+  register: awxsvc
+  changed_when: False
+
+- name: Template nginx dropin
+  become: True
+  template:
+    src: nginx-dropin.conf.j2
+    dest: /etc/nginx/base.d/awx.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: restart nginx
